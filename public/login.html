@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - LearnHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <a class="logo" href="index.html">Learn<span>Hub</span></a>
+    <h2 style="margin-top:14px">Welcome back</h2>
+    <p class="sub">Log in to continue learning</p>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn btn-block" onclick="login()">Login</button>
+    <p class="switch">New here? <a href="register.html">Create an account</a></p>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    async function login() {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("name", data.name);
+        window.location.href = "courses.html";
+      } else showToast(data.message, "error");
+    }
+  </script>
+</body>
+</html>

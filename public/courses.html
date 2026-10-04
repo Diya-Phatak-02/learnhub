@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Courses - LearnHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="logo" href="index.html">Learn<span>Hub</span></a>
+    <div class="nav-links">
+      <span id="welcome"></span>
+      <button class="btn btn-outline" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="page-head">
+    <h1>Explore Courses</h1>
+    <p>Pick a course and start learning today.</p>
+  </div>
+  <div class="grid" id="list"></div>
+
+  <div id="overlay">
+    <div id="modal">
+      <h3>Pay for <span id="mTitle"></span></h3>
+      <div class="demo">DEMO MODE: no real money is charged. Use any 16-digit number, e.g. 4111 1111 1111 1111</div>
+      <p><b>Amount: ₹<span id="mAmount"></span></b></p>
+      <input id="card" placeholder="Card number (16 digits)">
+      <div class="row">
+        <input id="exp" placeholder="MM/YY">
+        <input id="cvv" placeholder="CVV" type="password">
+      </div>
+      <button class="btn btn-block" onclick="pay()">Pay Now</button>
+      <button class="btn btn-grey btn-block" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "login.html";
+    document.getElementById("welcome").innerText = "Hi, " + localStorage.getItem("name");
+
+    const icons = ["🌐", "⚡", "🚀", "🎨", "🐍", "📊"];
+    const colors = ["#e0e7ff", "#fef3c7", "#dcfce7", "#fce7f3", "#dbeafe", "#ede9fe"];
+    let currentCourse = null;
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
+
+    async function loadCourses() {
+      const res = await fetch("/api/courses");
+      const courses = await res.json();
+
+      let owned = [];
+      try {
+        const me = await fetch("/api/auth/me", { headers: { Authorization: "Bearer " + token } });
+        if (me.ok) owned = (await me.json()).purchasedCourses || [];
+      } catch (e) {}
+
+      document.getElementById("list").innerHTML = courses.map((c, i) => `
+        <div class="course">
+          <div class="thumb" style="background:${colors[i % 6]}">${icons[i % 6]}</div>
+          <div class="course-body">
+            <h3>${c.title}</h3>
+            <p>${c.description}</p>
+            <div class="instructor">👨‍🏫 ${c.instructor}</div>
+            <div class="course-foot">
+              <span class="price">₹${c.price}</span>
+              ${owned.includes(c._id)
+                ? '<span class="badge">✓ Enrolled</span>'
+                : `<button class="btn" onclick="buy('${c._id}')">Buy Now</button>`}
+            </div>
+          </div>
+        </div>`).join("");
+    }
+
+    async function buy(courseId) {
+      const res = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ courseId }),
+      });
+      const order = await res.json();
+      if (!res.ok) return showToast(order.message, "error");
+      currentCourse = courseId;
+      document.getElementById("mTitle").innerText = order.title;
+      document.getElementById("mAmount").innerText = order.amount;
+      document.getElementById("overlay").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    async function pay() {
+      const res = await fetch("/api/payment/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ courseId: currentCourse, cardNumber: document.getElementById("card").value }),
+      });
+      const data = await res.json();
+      showToast(data.message, res.ok ? "ok" : "error");
+      if (res.ok) { closeModal(); loadCourses(); }
+    }
+
+    loadCourses();
+  </script>
+</body>
+</html>

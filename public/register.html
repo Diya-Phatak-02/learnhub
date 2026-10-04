@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register - LearnHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <a class="logo" href="index.html">Learn<span>Hub</span></a>
+    <h2 style="margin-top:14px">Create your account</h2>
+    <p class="sub">Start learning today</p>
+    <input id="name" placeholder="Full Name">
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn btn-block" onclick="register()">Register</button>
+    <p class="switch">Already have an account? <a href="login.html">Login</a></p>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    async function register() {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("name").value,
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        }),
+      });
+      const data = await res.json();
+      showToast(data.message, res.ok ? "ok" : "error");
+      if (res.ok) setTimeout(() => (window.location.href = "login.html"), 1200);
+    }
+  </script>
+</body>
+</html>
